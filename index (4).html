@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>買える化石博物館 — Interactive Prototype</title>
+<link href="https://fonts.googleapis.com/css2?family=M+PLUS+1:wght@400;500&family=Anta&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@2.44.0/tabler-icons.min.css">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'Anta', sans-serif;
+  background: #111;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 24px 16px 40px;
+  gap: 16px;
+}
+.top-bar { display: flex; justify-content: space-between; align-items: center; width: 100%; max-width: 400px; }
+.top-logo { font-family: 'Anta', sans-serif; font-size: 11px; letter-spacing: 0.16em; color: #c87a52; }
+.tgl-row { display: flex; align-items: center; gap: 7px; }
+.tgl-lbl { font-family: 'Anta', sans-serif; font-size: 8px; letter-spacing: 0.1em; color: #555; }
+.tgl-track { width: 36px; height: 19px; border-radius: 19px; border: 0.5px solid #333; background: #1a1a1a; position: relative; cursor: pointer; transition: background 0.25s; }
+.tgl-track.on { background: #e8e2d8; border-color: #c8c2b8; }
+.tgl-thumb { position: absolute; top: 2.5px; left: 2.5px; width: 14px; height: 14px; border-radius: 50%; background: #c87a52; transition: transform 0.25s; }
+.tgl-track.on .tgl-thumb { transform: translateX(17px); }
+
+.phone-outer { width: 320px; height: 620px; border-radius: 44px; border: 8px solid #1e1e1e; background: #0d0d0d; overflow: hidden; position: relative; box-shadow: 0 0 0 1px #2a2a2a; transition: background 0.25s, border-color 0.25s; }
+.phone-outer.light { background: #f5f2ec; border-color: #d8d2c8; }
+
+.screen { position: absolute; inset: 0; display: flex; flex-direction: column; overflow: hidden; opacity: 0; pointer-events: none; transform: translateX(30px); transition: opacity 0.22s ease, transform 0.22s ease; }
+.screen.active { opacity: 1; pointer-events: all; transform: translateX(0); }
+.screen.exit-left { opacity: 0; transform: translateX(-30px); }
+
+.sb { display: flex; justify-content: space-between; padding: 10px 18px 5px; flex-shrink: 0; }
+.sb span { font-family: 'Anta', sans-serif; font-size: 9px; color: #555; }
+.light .sb span { color: #aaa; }
+
+.ey { font-family: 'Anta', sans-serif; font-size: 8px; letter-spacing: 0.18em; color: #c87a52; margin-bottom: 3px; }
+.light .ey { color: #b06840; }
+.h1t { font-family: 'M PLUS 1', sans-serif; font-size: 18px; font-weight: 500; color: #f0ece4; line-height: 1.3; }
+.light .h1t { color: #1e1a12; }
+.subt { font-family: 'Anta', sans-serif; font-size: 8px; letter-spacing: 0.06em; color: #555; margin-top: 3px; line-height: 1.6; }
+.light .subt { color: #b0a898; }
+.hdr { padding: 12px 18px 0; flex-shrink: 0; }
+.scr-body { flex: 1; overflow-y: auto; overflow-x: hidden; }
+
+/* ── TAB BAR ── */
+.tbar { display: flex; justify-content: space-around; padding: 8px 4px 12px; border-top: 0.5px solid #1e1e1e; flex-shrink: 0; transition: border-color 0.25s; }
+.light .tbar { border-top-color: #ddd8ce; }
+.tb-item { display: flex; flex-direction: column; align-items: center; gap: 2px; cursor: pointer; padding: 2px 6px; }
+.tb-item i { font-size: 19px; color: #2e2e2e; transition: color 0.15s; }
+.light .tb-item i { color: #c8c3bb; }
+.tb-item span { font-family: 'Anta', sans-serif; font-size: 6px; letter-spacing: 0.06em; color: #2e2e2e; }
+.light .tb-item span { color: #c8c3bb; }
+.tb-item.act i { color: #c87a52; }
+.light .tb-item.act i { color: #b06840; }
+.tb-item.act span { color: #c87a52; }
+.light .tb-item.act span { color: #b06840; }
+
+.back-btn { font-family: 'Anta', sans-serif; font-size: 9px; color: #c87a52; display: flex; align-items: center; gap: 4px; cursor: pointer; margin-bottom: 8px; }
+.light .back-btn { color: #b06840; }
+.step-dots { display: flex; justify-content: center; gap: 6px; padding: 6px 0; flex-shrink: 0; }
+.sdot { width: 22px; height: 3px; border-radius: 3px; background: #222; }
+.light .sdot { background: #ddd8ce; }
+.sdot.on { background: #c87a52; }
+.light .sdot.on { background: #b06840; }
+.cta-btn { background: #c87a52; border-radius: 10px; padding: 13px; text-align: center; font-family: 'Anta', sans-serif; font-size: 10px; color: #1a0d06; letter-spacing: 0.1em; cursor: pointer; }
+.light .cta-btn { background: #b06840; color: #fff; }
+.soc-btn { background: #1a1a1a; border: 0.5px solid #2a2a2a; border-radius: 10px; padding: 11px; display: flex; align-items: center; justify-content: center; gap: 8px; cursor: pointer; }
+.light .soc-btn { background: #ede9e1; border-color: #ddd8ce; }
+.soc-txt { font-family: 'Anta', sans-serif; font-size: 9px; color: #e0dbd2; letter-spacing: 0.06em; }
+.light .soc-txt { color: #2a2218; }
+.or-row { display: flex; align-items: center; gap: 8px; }
+.or-line { flex: 1; height: 0.5px; background: #222; }
+.light .or-line { background: #ddd8ce; }
+.or-txt { font-family: 'Anta', sans-serif; font-size: 8px; color: #444; }
+.light .or-txt { color: #c0bab2; }
+.finp { background: #161616; border: 0.5px solid #2a2a2a; border-radius: 8px; padding: 10px 12px; font-family: 'M PLUS 1', sans-serif; font-size: 10px; color: #555; }
+.light .finp { background: #e8e3da; border-color: #ddd8ce; color: #b0a898; }
+.fossil-trio { display: flex; gap: 8px; justify-content: center; }
+.f-ic { width: 36px; height: 36px; border-radius: 9px; background: #1a1612; border: 0.5px solid #2a2218; display: flex; align-items: center; justify-content: center; font-size: 18px; }
+.light .f-ic { background: #e8e3da; border-color: #ddd8ce; }
+
+/* done */
+.done-rings { width: 80px; height: 80px; border-radius: 50%; border: 0.5px solid #c87a5228; display: flex; align-items: center; justify-content: center; }
+.done-inner { width: 62px; height: 62px; border-radius: 50%; border: 0.5px solid #c87a5240; display: flex; align-items: center; justify-content: center; }
+.done-circle { width: 46px; height: 46px; border-radius: 50%; background: #c87a52; display: flex; align-items: center; justify-content: center; }
+.light .done-circle { background: #b06840; }
+.done-circle i { font-size: 24px; color: #1a0d06; }
+.light .done-circle i { color: #fff; }
+.done-card { background: #161614; border: 0.5px solid #2a2218; border-radius: 12px; padding: 12px 14px; display: flex; gap: 12px; align-items: center; }
+.light .done-card { background: #ede9e1; border-color: #ddd8ce; }
+.done-th { width: 44px; height: 44px; border-radius: 9px; background: #1e1a14; border: 0.5px solid #2a2218; display: flex; align-items: center; justify-content: center; font-size: 22px; flex-shrink: 0; position: relative; }
+.light .done-th { background: #e2ddd5; border-color: #ddd8ce; }
+.rdot { position: absolute; top: 4px; right: 4px; width: 7px; height: 7px; border-radius: 50%; }
+.rs { background: #c87a52; } .ra { background: #8a6fc0; } .rb { background: #4a8fa8; }
+
+/* concept dialog */
+.concept-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.82); display: flex; align-items: center; justify-content: center; z-index: 50; padding: 20px; }
+.light .concept-overlay { background: rgba(30,26,18,0.72); }
+.concept-sheet { width: 100%; border-radius: 18px; background: #141210; border: 0.5px solid #2a2218; overflow: hidden; }
+.light .concept-sheet { background: #f0ece4; border-color: #ddd8ce; }
+.concept-hero { padding: 22px 18px 16px; border-bottom: 0.5px solid #1e1a14; display: flex; flex-direction: column; align-items: center; gap: 10px; }
+.light .concept-hero { border-bottom-color: #ddd8ce; }
+.concept-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; padding: 14px 16px; }
+.concept-card { background: #1a1714; border: 0.5px solid #2a2218; border-radius: 10px; padding: 10px; display: flex; flex-direction: column; gap: 5px; }
+.light .concept-card { background: #ede9e1; border-color: #ddd8ce; }
+.cc-icon { font-size: 20px; }
+.cc-title { font-family: 'M PLUS 1', sans-serif; font-size: 10px; font-weight: 500; color: #e0dbd2; line-height: 1.4; }
+.light .cc-title { color: #2a2218; }
+.cc-body { font-family: 'M PLUS 1', sans-serif; font-size: 8px; color: #555; line-height: 1.7; }
+.light .cc-body { color: #9a948c; }
+.concept-footer { padding: 10px 16px 16px; display: flex; flex-direction: column; gap: 8px; }
+
+/* ztabs */
+.ztabs { display: flex; padding: 0 18px; border-bottom: 0.5px solid #222; flex-shrink: 0; }
+.light .ztabs { border-bottom-color: #ddd8ce; }
+.zt { font-family: 'Anta', sans-serif; font-size: 9px; letter-spacing: 0.05em; padding: 6px 10px; border-bottom: 2px solid transparent; margin-bottom: -0.5px; color: #444; cursor: pointer; white-space: nowrap; }
+.light .zt { color: #c0bab2; }
+.zt.on { color: #c87a52; border-bottom-color: #c87a52; }
+.light .zt.on { color: #b06840; border-bottom-color: #b06840; }
+
+/* collection grid */
+.zgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 12px 16px 8px; }
+.zcard { background: #161616; border: 0.5px solid #2a2a2a; border-radius: 12px; padding: 10px; display: flex; flex-direction: column; gap: 6px; cursor: pointer; }
+.light .zcard { background: #ede9e1; border-color: #ddd8ce; }
+.zcard.lk { opacity: 0.38; cursor: default; }
+.zimg { width: 100%; aspect-ratio: 1; border-radius: 8px; background: #1e1a16; display: flex; align-items: center; justify-content: center; font-size: 32px; position: relative; }
+.light .zimg { background: #e2ddd5; }
+.znum { position: absolute; top: 6px; left: 7px; font-family: 'Anta', sans-serif; font-size: 8px; color: #3a3a3a; }
+.light .znum { color: #c0bab2; }
+.zdot { position: absolute; top: 6px; right: 7px; width: 7px; height: 7px; border-radius: 50%; }
+.zname { font-family: 'M PLUS 1', sans-serif; font-size: 11px; font-weight: 500; color: #e0dbd2; line-height: 1.5; }
+.light .zname { color: #2a2218; }
+.zera { font-family: 'Anta', sans-serif; font-size: 9px; color: #555; }
+.light .zera { color: #b0a898; }
+.prog-row { display: flex; align-items: center; gap: 6px; padding: 8px 16px; border-top: 0.5px solid #1a1a1a; flex-shrink: 0; }
+.light .prog-row { border-top-color: #ddd8ce; }
+.progbg { flex: 1; height: 3px; background: #222; border-radius: 3px; overflow: hidden; }
+.light .progbg { background: #ddd8ce; }
+.progfill { height: 100%; width: 37.5%; background: #c87a52; }
+.light .progfill { background: #b06840; }
+.progtxt { font-family: 'Anta', sans-serif; font-size: 9px; color: #555; }
+.light .progtxt { color: #b0a898; }
+
+/* detail */
+.dtop { padding: 12px 18px 16px; background: #111008; flex-shrink: 0; }
+.light .dtop { background: #ede8de; }
+.dhero { display: flex; justify-content: center; align-items: center; height: 80px; position: relative; }
+.dr1 { position: absolute; width: 70px; height: 70px; border-radius: 50%; border: 0.5px solid #c87a5228; }
+.dr2 { position: absolute; width: 90px; height: 90px; border-radius: 50%; border: 0.5px solid #c87a5214; }
+.light .dr1 { border-color: #b0684040; } .light .dr2 { border-color: #b0684022; }
+.d-fossil-icon { font-size: 48px; }
+.dnum { font-family: 'Anta', sans-serif; font-size: 9px; color: #c87a52; letter-spacing: 0.14em; margin-top: 10px; }
+.light .dnum { color: #b06840; }
+.dname { font-family: 'M PLUS 1', sans-serif; font-size: 18px; font-weight: 500; color: #f0ece4; }
+.light .dname { color: #1e1a12; }
+.dlatin { font-family: 'Anta', sans-serif; font-size: 9px; color: #555; margin-top: 2px; }
+.light .dlatin { color: #b0a898; }
+.dtags { display: flex; gap: 5px; margin-top: 10px; flex-wrap: wrap; }
+.dtag { font-family: 'Anta', sans-serif; font-size: 8px; padding: 3px 8px; border-radius: 20px; }
+.dt-e { background: #2a1e14; color: #c87a52; } .dt-t { background: #1a1e2a; color: #6a9cc0; } .dt-l { background: #1a2218; color: #6a9a6a; }
+.light .dt-e { background: #f0ddd0; color: #8a4e2a; } .light .dt-t { background: #d0dff0; color: #2a5a8a; } .light .dt-l { background: #d0f0da; color: #2a6a3a; }
+.iblk { background: #141414; border: 0.5px solid #222; border-radius: 10px; padding: 12px 14px; }
+.light .iblk { background: #e8e3da; border-color: #ddd8ce; }
+.ilbl { font-family: 'Anta', sans-serif; font-size: 8px; color: #444; letter-spacing: 0.14em; margin-bottom: 8px; }
+.light .ilbl { color: #c0bab2; }
+.irow { display: flex; justify-content: space-between; padding: 5px 0; border-bottom: 0.5px solid #1a1a1a; }
+.light .irow { border-bottom-color: #ddd8ce; }
+.irow:last-child { border-bottom: none; }
+.ikey { font-family: 'M PLUS 1', sans-serif; font-size: 10px; color: #666; }
+.light .ikey { color: #b0a898; }
+.ival { font-family: 'Anta', sans-serif; font-size: 10px; color: #e0dbd2; }
+.light .ival { color: #2a2218; }
+.sblk { background: #141410; border: 0.5px solid #2a2218; border-radius: 10px; padding: 12px 14px; }
+.light .sblk { background: #ede6d8; border-color: #d8cfc0; }
+.stxt { font-family: 'M PLUS 1', sans-serif; font-size: 10px; color: #888; line-height: 1.85; }
+.light .stxt { color: #8a8278; }
+.sacc { color: #c87a52; }
+.light .sacc { color: #b06840; }
+
+/* arrivals */
+.ftabs { display: flex; gap: 6px; padding: 8px 18px 0; flex-shrink: 0; }
+.ftab { font-family: 'Anta', sans-serif; font-size: 9px; padding: 4px 12px; border-radius: 20px; border: 0.5px solid #2a2a2a; color: #444; cursor: pointer; }
+.light .ftab { border-color: #ddd8ce; color: #c0bab2; }
+.ftab.on { background: #c87a52; border-color: #c87a52; color: #1a0d06; }
+.light .ftab.on { background: #b06840; border-color: #b06840; color: #fff; }
+.dlbl-row { display: flex; align-items: center; gap: 8px; margin-bottom: 6px; }
+.dlbl { font-family: 'Anta', sans-serif; font-size: 9px; letter-spacing: 0.12em; color: #c87a52; white-space: nowrap; }
+.light .dlbl { color: #b06840; }
+.dline { flex: 1; height: 0.5px; background: #222; }
+.light .dline { background: #ddd8ce; }
+.dbadge { font-family: 'Anta', sans-serif; font-size: 8px; padding: 2px 7px; border-radius: 20px; background: #1e1e1e; color: #666; white-space: nowrap; }
+.light .dbadge { background: #ede9e1; color: #b0a898; }
+.arow { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 0.5px solid #181818; cursor: pointer; }
+.light .arow { border-bottom-color: #ede9e1; }
+.arow:last-child { border-bottom: none; }
+.ath { width: 52px; height: 52px; border-radius: 10px; background: #1e1a16; border: 0.5px solid #2a2a2a; display: flex; align-items: center; justify-content: center; font-size: 24px; flex-shrink: 0; position: relative; }
+.light .ath { background: #e2ddd5; border-color: #ddd8ce; }
+.ain { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 3px; }
+.an { font-family: 'M PLUS 1', sans-serif; font-size: 12px; font-weight: 500; color: #e0dbd2; }
+.light .an { color: #2a2218; }
+.am { font-family: 'Anta', sans-serif; font-size: 9px; color: #555; }
+.light .am { color: #b0a898; }
+.atags { display: flex; gap: 4px; margin-top: 2px; }
+.atag { font-family: 'Anta', sans-serif; font-size: 8px; padding: 1px 6px; border-radius: 20px; }
+.at-e { background: #2a1e14; color: #c87a52; } .at-n { background: #1a2a1a; color: #6a9a6a; }
+.light .at-e { background: #f0ddd0; color: #8a4e2a; } .light .at-n { background: #d0f0da; color: #2a6a3a; }
+
+/* arr dialog */
+.arr-dialog-bg { display: none; position: absolute; inset: 0; background: rgba(0,0,0,0.72); align-items: flex-end; z-index: 30; }
+.light .arr-dialog-bg { background: rgba(0,0,0,0.45); }
+.arr-dialog-bg.open { display: flex; }
+.arr-sheet { width: 100%; border-radius: 20px 20px 0 0; background: #161410; padding: 0 0 16px; display: flex; flex-direction: column; overflow: hidden; }
+.light .arr-sheet { background: #f0ece4; }
+.arr-handle { width: 32px; height: 3px; border-radius: 3px; background: #333; margin: 12px auto 16px; }
+.light .arr-handle { background: #c8c3bb; }
+.arr-hero { display: flex; justify-content: center; align-items: center; height: 90px; position: relative; flex-shrink: 0; }
+.arr-ring1 { position: absolute; width: 70px; height: 70px; border-radius: 50%; border: 0.5px solid #c87a5228; }
+.arr-ring2 { position: absolute; width: 90px; height: 90px; border-radius: 50%; border: 0.5px solid #c87a5214; }
+.light .arr-ring1 { border-color: #b0684040; } .light .arr-ring2 { border-color: #b0684022; }
+.arr-emoji { font-size: 44px; }
+.arr-body { padding: 0 18px; display: flex; flex-direction: column; gap: 12px; }
+.arr-num { font-family: 'Anta', sans-serif; font-size: 9px; color: #c87a52; letter-spacing: 0.14em; }
+.light .arr-num { color: #b06840; }
+.arr-name { font-family: 'M PLUS 1', sans-serif; font-size: 18px; font-weight: 500; color: #f0ece4; }
+.light .arr-name { color: #1e1a12; }
+.arr-latin { font-family: 'Anta', sans-serif; font-size: 9px; color: #555; }
+.light .arr-latin { color: #b0a898; }
+.arr-tags { display: flex; gap: 5px; margin-top: 6px; flex-wrap: wrap; }
+.arr-info { background: #1e1e1a; border: 0.5px solid #2a2a22; border-radius: 10px; padding: 10px 12px; }
+.light .arr-info { background: #e8e3da; border-color: #ddd8ce; }
+.arr-close { position: absolute; top: 14px; right: 18px; font-size: 18px; color: #444; cursor: pointer; z-index: 1; }
+.light .arr-close { color: #c0bab2; }
+
+/* community */
+.mtabs { display: flex; border-bottom: 0.5px solid #222; flex-shrink: 0; }
+.light .mtabs { border-bottom-color: #ddd8ce; }
+.mt { font-family: 'Anta', sans-serif; font-size: 9px; letter-spacing: 0.06em; padding: 7px 12px; border-bottom: 2px solid transparent; margin-bottom: -0.5px; color: #444; cursor: pointer; white-space: nowrap; }
+.light .mt { color: #c0bab2; }
+.mt.on { color: #c87a52; border-bottom-color: #c87a52; }
+.light .mt.on { color: #b06840; border-bottom-color: #b06840; }
+.board-bar { display: flex; justify-content: space-between; align-items: center; padding: 8px 18px; flex-shrink: 0; }
+.bc { font-family: 'Anta', sans-serif; font-size: 9px; color: #555; }
+.light .bc { color: #b0a898; }
+.nt-btn { font-family: 'Anta', sans-serif; font-size: 9px; padding: 4px 10px; border-radius: 20px; border: 0.5px solid #c87a52; color: #c87a52; cursor: pointer; display: flex; align-items: center; gap: 4px; }
+.light .nt-btn { border-color: #b06840; color: #b06840; }
+.trow { display: flex; gap: 8px; padding: 10px 18px; border-bottom: 0.5px solid #181818; cursor: pointer; align-items: flex-start; }
+.light .trow { border-bottom-color: #ede9e1; }
+.tno { font-family: 'Anta', sans-serif; font-size: 9px; color: #333; min-width: 16px; padding-top: 1px; }
+.light .tno { color: #c0bab2; }
+.tbody2 { flex: 1; display: flex; flex-direction: column; gap: 4px; }
+.ttitle { font-family: 'M PLUS 1', sans-serif; font-size: 11px; font-weight: 500; color: #e0dbd2; line-height: 1.45; }
+.light .ttitle { color: #2a2218; }
+.tmeta { font-family: 'Anta', sans-serif; font-size: 8px; color: #444; display: flex; gap: 6px; align-items: center; }
+.light .tmeta { color: #b0a898; }
+.tbadge { font-family: 'Anta', sans-serif; font-size: 7px; padding: 1px 5px; border-radius: 20px; }
+.tb-h { background: #2a1e14; color: #c87a52; } .tb-n { background: #1a2a1a; color: #6a9a6a; }
+.light .tb-h { background: #f0ddd0; color: #8a4e2a; } .light .tb-n { background: #d0f0da; color: #2a6a3a; }
+.tright2 { display: flex; flex-direction: column; align-items: flex-end; gap: 2px; }
+.tcc { font-family: 'Anta', sans-serif; font-size: 9px; color: #555; }
+.light .tcc { color: #b0a898; }
+
+/* thread */
+.thread-hdr { padding: 10px 18px 0; border-bottom: 0.5px solid #1e1e1e; flex-shrink: 0; }
+.light .thread-hdr { border-bottom-color: #ddd8ce; }
+.tnlbl { font-family: 'Anta', sans-serif; font-size: 8px; color: #444; letter-spacing: 0.12em; margin-bottom: 4px; }
+.light .tnlbl { color: #b0a898; }
+.ttbig { font-family: 'M PLUS 1', sans-serif; font-size: 13px; font-weight: 500; color: #f0ece4; line-height: 1.5; padding-bottom: 7px; }
+.light .ttbig { color: #1e1a12; }
+.tstats { display: flex; gap: 12px; padding-bottom: 7px; }
+.tsi { font-family: 'Anta', sans-serif; font-size: 8px; color: #555; display: flex; align-items: center; gap: 3px; }
+.light .tsi { color: #b0a898; }
+.tsi i { font-size: 12px; }
+.cblk { padding: 9px 18px; border-bottom: 0.5px solid #161616; }
+.light .cblk { border-bottom-color: #ede9e1; }
+.cblk.op { background: #111008; }
+.light .cblk.op { background: #eee8dc; }
+.cmeta { display: flex; align-items: baseline; gap: 5px; margin-bottom: 4px; flex-wrap: wrap; }
+.cnum { font-family: 'Anta', sans-serif; font-size: 9px; color: #c87a52; }
+.light .cnum { color: #b06840; }
+.cname { font-family: 'Anta', sans-serif; font-size: 9px; color: #666; }
+.light .cname { color: #8a8278; }
+.cid { font-family: 'Anta', sans-serif; font-size: 8px; color: #333; }
+.light .cid { color: #c0bab2; }
+.cdate { font-family: 'Anta', sans-serif; font-size: 8px; color: #333; margin-left: auto; }
+.light .cdate { color: #c0bab2; }
+.copb { font-family: 'Anta', sans-serif; font-size: 8px; padding: 1px 5px; border-radius: 3px; background: #c87a52; color: #1a0d06; }
+.light .copb { background: #b06840; color: #fff; }
+.cbody { font-family: 'M PLUS 1', sans-serif; font-size: 10px; color: #c8c4bc; line-height: 1.8; }
+.light .cbody { color: #4a4438; }
+.canc { color: #c87a52; }
+.light .canc { color: #b06840; }
+.cquote { border-left: 2px solid #333; padding: 4px 8px; margin: 4px 0; background: #161616; border-radius: 0 5px 5px 0; }
+.light .cquote { border-left-color: #c0bab2; background: #e8e3da; }
+.cqtxt { font-family: 'M PLUS 1', sans-serif; font-size: 9px; color: #555; line-height: 1.65; }
+.light .cqtxt { color: #9a948c; }
+.reply-bar { display: flex; align-items: center; gap: 8px; padding: 8px 14px 10px; border-top: 0.5px solid #1e1e1e; flex-shrink: 0; }
+.light .reply-bar { border-top-color: #ddd8ce; }
+.rinput { flex: 1; background: #1a1a1a; border: 0.5px solid #2a2a2a; border-radius: 20px; padding: 8px 12px; font-family: 'M PLUS 1', sans-serif; font-size: 10px; color: #555; }
+.light .rinput { background: #e8e3da; border-color: #ddd8ce; color: #b0a898; }
+.rsend { width: 32px; height: 32px; border-radius: 50%; background: #c87a52; display: flex; align-items: center; justify-content: center; flex-shrink: 0; cursor: pointer; }
+.light .rsend { background: #b06840; }
+.rsend i { font-size: 16px; color: #1a0d06; }
+.light .rsend i { color: #fff; }
+
+/* article LP */
+.lp-nav { display: flex; justify-content: space-between; align-items: center; padding: 8px 18px; border-bottom: 0.5px solid #1e1e1e; flex-shrink: 0; }
+.light .lp-nav { border-bottom-color: #ddd8ce; }
+.logo { font-family: 'Anta', sans-serif; font-size: 10px; letter-spacing: 0.14em; color: #c87a52; }
+.light .logo { color: #b06840; }
+.hdiv { display: flex; align-items: center; gap: 8px; margin-top: 4px; }
+.hline { flex: 1; height: 0.5px; background: #1e1e1e; }
+.light .hline { background: #ddd8ce; }
+.hdot { width: 5px; height: 5px; border-radius: 50%; background: #c87a52; flex-shrink: 0; }
+.light .hdot { background: #b06840; }
+.tldot { width: 10px; height: 10px; border-radius: 50%; border: 1.5px solid #c87a52; background: #0d0d0d; flex-shrink: 0; margin-top: 2px; }
+.light .tldot { background: #f5f2ec; border-color: #b06840; }
+.tldot.f { background: #c87a52; }
+.light .tldot.f { background: #b06840; }
+.tlline { flex: 1; width: 0.5px; background: #222; margin-top: 4px; }
+.light .tlline { background: #ddd8ce; }
+.tlera { font-family: 'Anta', sans-serif; font-size: 9px; color: #c87a52; letter-spacing: 0.1em; }
+.light .tlera { color: #b06840; }
+.tlage { font-family: 'Anta', sans-serif; font-size: 8px; color: #444; margin-top: -2px; }
+.light .tlage { color: #b0a898; }
+.tlchip { display: flex; align-items: center; gap: 5px; background: #161616; border: 0.5px solid #2a2a2a; border-radius: 7px; padding: 5px 9px; align-self: flex-start; }
+.light .tlchip { background: #ede9e1; border-color: #ddd8ce; }
+.tlfn { font-family: 'M PLUS 1', sans-serif; font-size: 10px; font-weight: 500; color: #e0dbd2; }
+.light .tlfn { color: #2a2218; }
+.tldesc { font-family: 'M PLUS 1', sans-serif; font-size: 9px; color: #555; line-height: 1.7; }
+.light .tldesc { color: #9a948c; }
+.acard { border-radius: 9px; overflow: hidden; border: 0.5px solid #222; cursor: pointer; }
+.light .acard { border-color: #ddd8ce; }
+.ath2 { height: 52px; display: flex; align-items: center; justify-content: center; font-size: 26px; background: #1e1612; position: relative; }
+.ath2.cool { background: #12161e; } .ath2.nat { background: #161e12; }
+.light .ath2 { background: #e8e0d4; } .light .ath2.cool { background: #d4dce8; } .light .ath2.nat { background: #d8e8d0; }
+.acat { position: absolute; top: 6px; left: 8px; font-family: 'Anta', sans-serif; font-size: 8px; padding: 2px 7px; border-radius: 20px; }
+.ac-b { background: #c87a52; color: #1a0d06; } .ac-l { background: #1a1e2a; color: #6a9cc0; } .ac-s { background: #1a2218; color: #6a9a6a; }
+.light .ac-b { background: #b06840; color: #fff; } .light .ac-l { background: #d0dff0; color: #2a5a8a; } .light .ac-s { background: #d0f0da; color: #2a6a3a; }
+.ainf { padding: 8px 12px 10px; background: #141414; }
+.light .ainf { background: #ede9e1; }
+.atit { font-family: 'M PLUS 1', sans-serif; font-size: 11px; font-weight: 500; color: #e0dbd2; line-height: 1.5; }
+.light .atit { color: #2a2218; }
+.amet { font-family: 'Anta', sans-serif; font-size: 9px; color: #555; margin-top: 3px; }
+.light .amet { color: #b0a898; }
+
+/* account */
+.acc-hero { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 14px 18px 12px; border-bottom: 0.5px solid #1a1a1a; flex-shrink: 0; }
+.light .acc-hero { border-bottom-color: #ddd8ce; }
+.av { width: 52px; height: 52px; border-radius: 50%; background: #1e1a14; border: 2px solid #c87a52; display: flex; align-items: center; justify-content: center; font-size: 24px; position: relative; }
+.light .av { background: #e8e3da; border-color: #b06840; }
+.avrank { position: absolute; bottom: -2px; right: -2px; font-family: 'Anta', sans-serif; font-size: 8px; padding: 2px 6px; border-radius: 20px; background: #c87a52; color: #1a0d06; }
+.light .avrank { background: #b06840; color: #fff; }
+.accname { font-family: 'M PLUS 1', sans-serif; font-size: 16px; font-weight: 500; color: #f0ece4; }
+.light .accname { color: #1e1a12; }
+.accemail { font-family: 'Anta', sans-serif; font-size: 9px; color: #555; }
+.light .accemail { color: #b0a898; }
+.accstats { display: flex; gap: 20px; }
+.pst { display: flex; flex-direction: column; align-items: center; gap: 2px; }
+.pstn { font-family: 'Anta', sans-serif; font-size: 18px; color: #c87a52; }
+.light .pstn { color: #b06840; }
+.pstl { font-family: 'Anta', sans-serif; font-size: 8px; color: #555; letter-spacing: 0.08em; }
+.light .pstl { color: #b0a898; }
+.sglbl { font-family: 'Anta', sans-serif; font-size: 8px; color: #444; letter-spacing: 0.14em; padding: 10px 0 5px; }
+.light .sglbl { color: #b0a898; }
+.srow { display: flex; justify-content: space-between; align-items: center; padding: 11px 0; border-bottom: 0.5px solid #181818; cursor: pointer; }
+.light .srow { border-bottom-color: #ede9e1; }
+.sleft { display: flex; align-items: center; gap: 10px; }
+.sleft i { font-size: 16px; color: #555; }
+.light .sleft i { color: #b0a898; }
+.stxt { font-family: 'M PLUS 1', sans-serif; font-size: 12px; color: #e0dbd2; }
+.light .stxt { color: #2a2218; }
+.sval { font-family: 'Anta', sans-serif; font-size: 9px; color: #555; display: flex; align-items: center; gap: 4px; }
+.light .sval { color: #b0a898; }
+.sval i { font-size: 13px; }
+.logout { font-family: 'Anta', sans-serif; font-size: 10px; color: #444; text-align: center; padding: 14px; cursor: pointer; }
+.light .logout { color: #c0bab2; }
+
+/* rank */
+.rank-hero { display: flex; flex-direction: column; align-items: center; gap: 7px; padding: 14px 18px 12px; border-bottom: 0.5px solid #1a1a1a; flex-shrink: 0; }
+.light .rank-hero { border-bottom-color: #ddd8ce; }
+.rbadge { font-family: 'Anta', sans-serif; font-size: 8px; padding: 3px 14px; border-radius: 20px; background: #c87a52; color: #1a0d06; letter-spacing: 0.1em; }
+.light .rbadge { background: #b06840; color: #fff; }
+.rcur { font-family: 'Anta', sans-serif; font-size: 28px; color: #f0ece4; letter-spacing: 0.04em; }
+.light .rcur { color: #1e1a12; }
+.rsub { font-family: 'M PLUS 1', sans-serif; font-size: 10px; color: #666; text-align: center; line-height: 1.7; }
+.light .rsub { color: #9a948c; }
+.rprog { width: 100%; display: flex; flex-direction: column; gap: 4px; }
+.rprow { display: flex; justify-content: space-between; }
+.rplbl { font-family: 'Anta', sans-serif; font-size: 9px; color: #555; }
+.light .rplbl { color: #b0a898; }
+.rplbl.ac { color: #c87a52; }
+.light .rplbl.ac { color: #b06840; }
+.rbar { width: 100%; height: 4px; background: #222; border-radius: 4px; overflow: hidden; }
+.light .rbar { background: #ddd8ce; }
+.rfill { height: 100%; width: 62%; background: #c87a52; }
+.light .rfill { background: #b06840; }
+.rrow { display: flex; align-items: center; gap: 8px; padding: 9px 12px; border-radius: 9px; border: 0.5px solid transparent; margin-bottom: 4px; }
+.rrow.cur { background: #1a1410; border-color: #c87a5244; }
+.light .rrow.cur { background: #f0e8de; border-color: #b0684044; }
+.ricon { font-size: 20px; width: 24px; text-align: center; flex-shrink: 0; }
+.rinfo { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+.rname { font-family: 'Anta', sans-serif; font-size: 11px; color: #e0dbd2; letter-spacing: 0.08em; }
+.light .rname { color: #2a2218; }
+.rcond { font-family: 'Anta', sans-serif; font-size: 8px; color: #555; }
+.light .rcond { color: #b0a898; }
+.rperks { font-family: 'M PLUS 1', sans-serif; font-size: 8px; color: #666; line-height: 1.5; }
+.light .rperks { color: #9a948c; }
+.rck { font-size: 14px; color: #c87a52; }
+.light .rck { color: #b06840; }
+.rlk { font-size: 14px; color: #2a2a2a; }
+.light .rlk { color: #c8c3bb; }
+.hist-total { display: flex; justify-content: space-between; align-items: baseline; padding: 10px 18px; border-top: 0.5px solid #1a1a1a; flex-shrink: 0; }
+.light .hist-total { border-top-color: #ddd8ce; }
+.htlbl { font-family: 'Anta', sans-serif; font-size: 9px; color: #555; letter-spacing: 0.1em; }
+.light .htlbl { color: #b0a898; }
+.htval { font-family: 'Anta', sans-serif; font-size: 18px; color: #c87a52; }
+.light .htval { color: #b06840; }
+
+.nav-hint { font-family: 'Anta', sans-serif; font-size: 8px; letter-spacing: 0.12em; color: #2a2a2a; }
+</style>
+</head>
+<body>
+
+<div class="top-bar">
+  <div class="top-logo">FOSSIL MUSEUM — Prototype</div>
+  <div class="tgl-row">
+    <span class="tgl-lbl">DARK</span>
+    <div class="tgl-track" id="modeToggle" onclick="toggleMode()">
+      <div class="tgl-thumb"></div>
+    </div>
+    <span class="tgl-lbl">LIGHT</span>
+  </div>
+</div>
+
+<div class="phone-outer" id="phone">
+
+  <!-- ══ S1: 登録 ══ -->
+  <div class="screen active" id="s-register">
+    <div class="sb"><span>9:41</span><span>◆◆ ▮▮</span></div>
+    <div class="step-dots"><div class="sdot on"></div><div class="sdot"></div></div>
+    <div class="scr-body" style="padding:16px 18px;display:flex;flex-direction:column;gap:14px;">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:10px;padding-top:8px;">
+        <div class="fossil-trio"><div class="f-ic">🦴</div><div class="f-ic">🐚</div><div class="f-ic">🦷</div></div>
+        <div class="ey">FOSSIL MUSEUM</div>
+        <div class="h1t" style="font-size:17px;text-align:center;">アカウントを<br>作成する</div>
+        <div class="subt" style="text-align:center;">購入した化石を図鑑に登録し、<br>コレクションを管理しましょう。</div>
+      </div>
+      <div class="soc-btn" onclick="go('s-done')"><span class="soc-txt">G &nbsp;&nbsp; Google で続ける</span></div>
+      <div class="soc-btn" onclick="go('s-done')"><i class="ti ti-brand-apple" style="font-size:16px"></i><span class="soc-txt">Apple で続ける</span></div>
+      <div class="or-row"><div class="or-line"></div><span class="or-txt">OR</span><div class="or-line"></div></div>
+      <div class="finp">メールアドレス</div>
+      <div class="finp">パスワード（8文字以上）</div>
+      <div class="cta-btn" onclick="go('s-done')">アカウントを作成 →</div>
+      <div style="font-family:'M PLUS 1',sans-serif;font-size:9px;color:#3a3a3a;text-align:center;line-height:1.7;">登録することで<span style="color:#c87a52">利用規約</span>および<br><span style="color:#c87a52">プライバシーポリシー</span>に同意します</div>
+    </div>
+  </div>
+
+  <!-- ══ S2: 完了 ══ -->
+  <div class="screen" id="s-done">
+    <div class="sb"><span>9:41</span><span>◆◆ ▮▮</span></div>
+    <div class="step-dots"><div class="sdot on"></div><div class="sdot on"></div></div>
+    <div class="scr-body" style="padding:16px 18px;display:flex;flex-direction:column;align-items:center;gap:14px;justify-content:center;min-height:480px;">
+      <div class="done-rings"><div class="done-inner"><div class="done-circle"><i class="ti ti-check"></i></div></div></div>
+      <div style="display:flex;flex-direction:column;align-items:center;gap:6px;">
+        <div class="ey">WELCOME</div>
+        <div class="h1t" style="font-size:17px;text-align:center;">登録完了！<br>図鑑が開きました</div>
+        <div class="subt" style="text-align:center;">購入した化石が図鑑に<br>自動で登録されました。</div>
+      </div>
+      <div class="done-card" style="width:100%">
+        <div class="done-th">🦴<span class="rdot rs"></span></div>
+        <div>
+          <div style="font-family:'Anta',sans-serif;font-size:8px;color:#c87a52">#001 · S RARITY</div>
+          <div style="font-family:'M PLUS 1',sans-serif;font-size:13px;font-weight:500;color:#e0dbd2">ティラノサウルス</div>
+          <div style="font-family:'Anta',sans-serif;font-size:9px;color:#555">Montana · 白亜紀後期</div>
+        </div>
+      </div>
+      <div class="cta-btn" style="width:100%" onclick="go('s-collection')">図鑑をひらく →</div>
+    </div>
+    <!-- concept dialog -->
+    <div class="concept-overlay" id="conceptOverlay">
+      <div class="concept-sheet">
+        <div class="concept-hero">
+          <div class="fossil-trio"><div class="f-ic">🦴</div><div class="f-ic">🐚</div><div class="f-ic">🦷</div></div>
+          <div class="ey">WELCOME</div>
+          <div class="h1t" style="font-size:16px;text-align:center;">買える化石博物館へ<br>ようこそ</div>
+          <div class="subt" style="text-align:center;">地球46億年の記憶をあなたの<br>手のひらに届けるために。</div>
+        </div>
+        <div class="concept-grid">
+          <div class="concept-card"><div class="cc-icon">📖</div><div class="cc-title">コレクション登録</div><div class="cc-body">購入化石が自動でコレクションに追加</div></div>
+          <div class="concept-card"><div class="cc-icon">✦</div><div class="cc-title">レアリティ制</div><div class="cc-body">S〜Bランクで希少度を可視化</div></div>
+          <div class="concept-card"><div class="cc-icon">🔔</div><div class="cc-title">入荷通知</div><div class="cc-body">新入荷をいち早くお知らせ</div></div>
+          <div class="concept-card"><div class="cc-icon">🌍</div><div class="cc-title">産地証明つき</div><div class="cc-body">すべての化石に正規証明書</div></div>
+        </div>
+        <div class="concept-footer">
+          <div class="cta-btn" onclick="closeConceptDialog()">コレクションをひらく →</div>
+          <div style="font-family:'Anta',sans-serif;font-size:9px;color:#444;text-align:center;cursor:pointer" onclick="closeConceptDialog()">スキップ</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ S3: コレクション ══ -->
+  <div class="screen" id="s-collection">
+    <div class="sb"><span>9:41</span><span>◆◆ ▮▮</span></div>
+    <div class="hdr"><div class="ey">My Collection</div><div class="h1t">コレクション</div><div class="subt">3 / 8 discovered</div></div>
+    <div class="ztabs">
+      <div class="zt on">ALL</div><div class="zt">古生代</div><div class="zt">中生代</div><div class="zt">新生代</div>
+    </div>
+    <div class="scr-body">
+      <div class="zgrid">
+        <div class="zcard" onclick="go('s-detail')"><div class="zimg"><span class="znum">#001</span><span class="zdot rs"></span>🦴</div><div class="zname">ティラノサウルス</div><div class="zera">白亜紀後期</div></div>
+        <div class="zcard" onclick="go('s-detail')"><div class="zimg"><span class="znum">#002</span><span class="zdot ra"></span>🐚</div><div class="zname">アンモナイト</div><div class="zera">デボン紀〜白亜紀</div></div>
+        <div class="zcard" onclick="go('s-detail')"><div class="zimg"><span class="znum">#003</span><span class="zdot rb"></span>🐟</div><div class="zname">魚類化石</div><div class="zera">シルル紀</div></div>
+        <div class="zcard lk"><div class="zimg"><span class="znum">#004</span><i class="ti ti-lock" style="font-size:22px;color:#2a2a2a"></i></div><div class="zname" style="color:#2a2a2a">未発見</div><div class="zera">——</div></div>
+        <div class="zcard lk"><div class="zimg"><span class="znum">#005</span><i class="ti ti-lock" style="font-size:22px;color:#2a2a2a"></i></div><div class="zname" style="color:#2a2a2a">未発見</div><div class="zera">——</div></div>
+        <div class="zcard lk"><div class="zimg"><span class="znum">#006</span><i class="ti ti-lock" style="font-size:22px;color:#2a2a2a"></i></div><div class="zname" style="color:#2a2a2a">未発見</div><div class="zera">——</div></div>
+      </div>
+    </div>
+    <div class="prog-row"><span class="progtxt">3/8</span><div class="progbg"><div class="progfill"></div></div><span class="progtxt">37.5%</span></div>
+    <div class="tbar">
+      <div class="tb-item" onclick="go('s-articles')"><i class="ti ti-book"></i><span>記事</span></div>
+      <div class="tb-item" onclick="go('s-arrivals')"><i class="ti ti-bell"></i><span>新入荷</span></div>
+      <div class="tb-item act"><i class="ti ti-layout-grid"></i><span>コレクション</span></div>
+      <div class="tb-item" onclick="go('s-community')"><i class="ti ti-messages"></i><span>コミュニティ</span></div>
+      <div class="tb-item" onclick="go('s-account')"><i class="ti ti-user"></i><span>アカウント</span></div>
+    </div>
+  </div>
+
+  <!-- ══ S4: 化石詳細 ══ -->
+  <div class="screen" id="s-detail">
+    <div class="sb"><span>9:41</span><span>◆◆ ▮▮</span></div>
+    <div class="scr-body">
+      <div class="dtop">
+        <div class="back-btn" onclick="go('s-collection')"><i class="ti ti-chevron-left"></i>コレクション</div>
+        <div class="dhero"><div class="dr2"></div><div class="dr1"></div><span class="d-fossil-icon">🦴</span></div>
+        <div class="dnum">#001 · S RARITY</div>
+        <div class="dname">ティラノサウルス</div>
+        <div class="dlatin">Tyrannosaurus rex</div>
+        <div class="dtags"><span class="dtag dt-e">白亜紀後期</span><span class="dtag dt-t">獣脚類</span><span class="dtag dt-l">北米</span></div>
+      </div>
+      <div style="padding:14px 16px;display:flex;flex-direction:column;gap:10px;">
+        <div class="iblk">
+          <div class="ilbl">DATA</div>
+          <div class="irow"><span class="ikey">発掘場所</span><span class="ival">Montana, USA</span></div>
+          <div class="irow"><span class="ikey">年代</span><span class="ival">6,800万年前</span></div>
+          <div class="irow"><span class="ikey">体長</span><span class="ival">約12m</span></div>
+          <div class="irow"><span class="ikey">保存状態</span><span class="ival">★★★★☆</span></div>
+        </div>
+        <div class="sblk">
+          <div class="ilbl" style="color:#c87a5255">STORY</div>
+          <div class="stxt">この標本は<span class="sacc">白亜紀末期の地層</span>から発見された。6,600万年前の大絶滅を直前に生きた個体であり、地球の記憶を閉じ込めた石の欠片でもある。</div>
+        </div>
+      </div>
+    </div>
+    <div class="tbar">
+      <div class="tb-item" onclick="go('s-articles')"><i class="ti ti-book"></i><span>記事</span></div>
+      <div class="tb-item" onclick="go('s-arrivals')"><i class="ti ti-bell"></i><span>新入荷</span></div>
+      <div class="tb-item act" onclick="go('s-collection')"><i class="ti ti-layout-grid"></i><span>コレクション</span></div>
+      <div class="tb-item" onclick="go('s-community')"><i class="ti ti-messages"></i><span>コミュニティ</span></div>
+      <div class="tb-item" onclick="go('s-account')"><i class="ti ti-user"></i><span>アカウント</span></div>
+    </div>
+  </div>
+
+  <!-- ══ S5: 新入荷 ══ -->
+  <div class="screen" id="s-arrivals">
+    <div class="sb"><span>9:41</span><span>◆◆ ▮▮</span></div>
+    <div class="hdr"><div class="ey">New Arrivals</div><div class="h1t">新入荷</div></div>
+    <div class="ftabs"><div class="ftab on">ALL</div><div class="ftab">TOKYO</div><div class="ftab">FUK</div></div>
+    <div class="scr-body" style="padding:10px 18px;">
+      <div class="dlbl-row" style="margin-top:6px;"><span class="dlbl">2025.05.28</span><div class="dline"></div><span class="dbadge">TOKYO</span></div>
+      <div class="arow" onclick="openArrDialog('ammonite')"><div class="ath">🐚<span class="rdot rs"></span></div><div class="ain"><div class="an">オルソセラス</div><div class="am">Morocco · オルドビス紀</div><div class="atags"><span class="atag at-e">4.7億年前</span><span class="atag at-n">NEW</span></div></div><i class="ti ti-chevron-right" style="font-size:14px;color:#333"></i></div>
+      <div class="arow" onclick="openArrDialog('trilobite')"><div class="ath">🦀<span class="rdot ra"></span></div><div class="ain"><div class="an">三葉虫</div><div class="am">Utah, USA · カンブリア紀</div><div class="atags"><span class="atag at-e">5.1億年前</span></div></div><i class="ti ti-chevron-right" style="font-size:14px;color:#333"></i></div>
+      <div class="dlbl-row" style="margin-top:8px;"><span class="dlbl">2025.05.24</span><div class="dline"></div><span class="dbadge">FUK</span></div>
+      <div class="arow" onclick="openArrDialog('shark')"><div class="ath">🦷<span class="rdot rb"></span></div><div class="ain"><div class="an">メガロドン歯牙</div><div class="am">South Carolina · 中新世</div><div class="atags"><span class="atag at-e">1,500万年前</span></div></div><i class="ti ti-chevron-right" style="font-size:14px;color:#333"></i></div>
+      <div class="arow" onclick="openArrDialog('amber')"><div class="ath">🟠<span class="rdot rs"></span></div><div class="ain"><div class="an">虫入り琥珀</div><div class="am">Myanmar · 白亜紀</div><div class="atags"><span class="atag at-e">9,900万年前</span><span class="atag at-n">NEW</span></div></div><i class="ti ti-chevron-right" style="font-size:14px;color:#333"></i></div>
+    </div>
+    <div class="tbar">
+      <div class="tb-item" onclick="go('s-articles')"><i class="ti ti-book"></i><span>記事</span></div>
+      <div class="tb-item act"><i class="ti ti-bell"></i><span>新入荷</span></div>
+      <div class="tb-item" onclick="go('s-collection')"><i class="ti ti-layout-grid"></i><span>コレクション</span></div>
+      <div class="tb-item" onclick="go('s-community')"><i class="ti ti-messages"></i><span>コミュニティ</span></div>
+      <div class="tb-item" onclick="go('s-account')"><i class="ti ti-user"></i><span>アカウント</span></div>
+    </div>
+    <!-- arrival dialog -->
+    <div class="arr-dialog-bg" id="arrDialog">
+      <div class="arr-sheet">
+        <i class="ti ti-x arr-close" onclick="closeArrDialog()"></i>
+        <div class="arr-handle"></div>
+        <div class="arr-hero"><div class="arr-ring2"></div><div class="arr-ring1"></div><span class="arr-emoji" id="arr-emoji">🐚</span></div>
+        <div class="arr-body">
+          <div>
+            <div class="arr-num" id="arr-num"></div>
+            <div class="arr-name" id="arr-name"></div>
+            <div class="arr-latin" id="arr-latin"></div>
+            <div class="arr-tags" id="arr-tags"></div>
+          </div>
+          <div class="arr-info">
+            <div class="ilbl">DATA</div>
+            <div class="irow"><span class="ikey">入荷日</span><span class="ival" id="arr-date"></span></div>
+            <div class="irow"><span class="ikey">入荷店舗</span><span class="ival" id="arr-store"></span></div>
+            <div class="irow"><span class="ikey">年代</span><span class="ival" id="arr-age"></span></div>
+            <div class="irow"><span class="ikey">保存状態</span><span class="ival" id="arr-cond"></span></div>
+          </div>
+          <div class="cta-btn">在庫を確認する →</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══ S6: コミュニティ ══ -->
+  <div class="screen" id="s-community">
+    <div class="sb"><span>9:41</span><span>◆◆ ▮▮</span></div>
+    <div class="hdr"><div class="ey">Members Only</div><div class="h1t">コミュニティ</div></div>
+    <div class="mtabs"><div class="mt on">掲示板</div><div class="mt">コンテンツ</div></div>
+    <div class="board-bar"><span class="bc">32 THREADS</span><div class="nt-btn"><i class="ti ti-plus" style="font-size:11px"></i> NEW THREAD</div></div>
+    <div class="scr-body">
+      <div class="trow" onclick="go('s-thread')"><div class="tno">01</div><div class="tbody2"><div class="ttitle">モロッコ産オルソセラスの見分け方を教えてください</div><div class="tmeta">2025.05.28 <span class="tbadge tb-h">HOT</span></div></div><div class="tright2"><i class="ti ti-message-circle" style="font-size:13px;color:#555"></i><span class="tcc">24</span></div></div>
+      <div class="trow" onclick="go('s-thread')"><div class="tno">02</div><div class="tbody2"><div class="ttitle">三葉虫コレクション自慢スレ</div><div class="tmeta">2025.05.27 <span class="tbadge tb-h">HOT</span></div></div><div class="tright2"><i class="ti ti-message-circle" style="font-size:13px;color:#555"></i><span class="tcc">41</span></div></div>
+      <div class="trow" onclick="go('s-thread')"><div class="tno">03</div><div class="tbody2"><div class="ttitle">化石のクリーニング方法まとめ</div><div class="tmeta">2025.05.25 <span class="tbadge tb-n">NEW</span></div></div><div class="tright2"><i class="ti ti-message-circle" style="font-size:13px;color:#555"></i><span class="tcc">8</span></div></div>
+      <div class="trow" onclick="go('s-thread')"><div class="tno">04</div><div class="tbody2"><div class="ttitle">アンモナイトの産地による色味の違いについて</div><div class="tmeta">2025.05.22</div></div><div class="tright2"><i class="ti ti-message-circle" style="font-size:13px;color:#555"></i><span class="tcc">17</span></div></div>
+      <div class="trow" onclick="go('s-thread')"><div class="tno">05</div><div class="tbody2"><div class="ttitle">初心者向け：化石の保管・ディスプレイのコツ</div><div class="tmeta">2025.05.20</div></div><div class="tright2"><i class="ti ti-message-circle" style="font-size:13px;color:#555"></i><span class="tcc">33</span></div></div>
+    </div>
+    <div class="tbar">
+      <div class="tb-item" onclick="go('s-articles')"><i class="ti ti-book"></i><span>記事</span></div>
+      <div class="tb-item" onclick="go('s-arrivals')"><i class="ti ti-bell"></i><span>新入荷</span></div>
+      <div class="tb-item" onclick="go('s-collection')"><i class="ti ti-layout-grid"></i><span>コレクション</span></div>
+      <div class="tb-item act"><i class="ti ti-messages"></i><span>コミュニティ</span></div>
+      <div class="tb-item" onclick="go('s-account')"><i class="ti ti-user"></i><span>アカウント</span></div>
+    </div>
+  </div>
+
+  <!-- ══ S7: スレッド ══ -->
+  <div class="screen" id="s-thread">
+    <div class="sb"><span>9:41</span><span>◆◆ ▮▮</span></div>
+    <div class="thread-hdr">
+      <div class="back-btn" onclick="go('s-community')"><i class="ti ti-chevron-left"></i>掲示板</div>
+      <div class="tnlbl">THREAD #01</div>
+      <div class="ttbig">モロッコ産オルソセラスの見分け方を教えてください</div>
+      <div class="tstats"><div class="tsi"><i class="ti ti-message-circle"></i>24</div><div class="tsi"><i class="ti ti-eye"></i>312</div><div class="tsi"><i class="ti ti-clock"></i>2025.05.28</div></div>
+    </div>
+    <div class="scr-body">
+      <div class="cblk op"><div class="cmeta"><span class="cnum">1</span><span class="cname">fossilhunter</span><span class="copb">OP</span><span class="cid">ID:Xk3mQ</span><span class="cdate">09:12</span></div><div class="cbody">先日代官山店でオルソセラスを購入したのですが、本物かどうか見分ける方法はありますか？縫合線の形状を確認するといいと聞いたのですが。</div></div>
+      <div class="cblk"><div class="cmeta"><span class="cnum">2</span><span class="cname">ammonite_lov</span><span class="cid">ID:pR9wZ</span><span class="cdate">09:34</span></div><div class="cbody">縫合線は確かに重要なポイントです。本物は細かく複雑な曲線を描いています。レプリカはプラスチック臭がすることも多いので匂いも確認してみては。</div></div>
+      <div class="cblk"><div class="cmeta"><span class="cnum">3</span><span class="cname">古生代マニア</span><span class="cid">ID:7tNvL</span><span class="cdate">10:01</span></div><div class="cbody"><span class="canc">&gt;&gt;1</span><br><div class="cquote"><div class="cqtxt">縫合線の形状を確認するといい</div></div>重量感も大事。本物は意外と重いです。持った感じが軽すぎたら疑ったほうがいい。</div></div>
+      <div class="cblk"><div class="cmeta"><span class="cnum">4</span><span class="cname">深海の住人</span><span class="cid">ID:mW2aK</span><span class="cdate">11:47</span></div><div class="cbody">店員さんに産地証明書があるか聞くのが一番早いと思います。ちゃんとした化石には証明書がついています。</div></div>
+    </div>
+    <div class="reply-bar"><div class="rinput">コメントを入力…</div><div class="rsend"><i class="ti ti-send"></i></div></div>
+  </div>
+
+  <!-- ══ S8: 記事 ══ -->
+  <div class="screen" id="s-articles">
+    <div class="sb"><span>9:41</span><span>◆◆ ▮▮</span></div>
+    <div class="lp-nav"><span class="logo">FOSSIL MUSEUM</span><i class="ti ti-menu-2" style="font-size:16px;color:#444"></i></div>
+    <div class="scr-body" style="padding:0;">
+      <div style="padding:16px 18px 14px;border-bottom:0.5px solid #1a1a1a;display:flex;flex-direction:column;gap:8px;">
+        <div class="ey">GEOLOGICAL TIME</div>
+        <div class="h1t">年代で知る<br>地球の化石</div>
+        <div class="subt">46億年の地球史を、化石とともに旅する。あなたのコレクションが、時間の地図になる。</div>
+        <div class="hdiv"><div class="hline"></div><div class="hdot"></div><div class="hline"></div></div>
+      </div>
+      <div style="padding:14px 18px;border-bottom:0.5px solid #1a1a1a;display:flex;flex-direction:column;gap:12px;">
+        <div style="display:flex;gap:10px;"><div style="display:flex;flex-direction:column;align-items:center;width:18px;flex-shrink:0;"><div class="tldot f"></div><div class="tlline"></div></div><div style="flex:1;display:flex;flex-direction:column;gap:5px;padding-bottom:4px;"><div class="tlera">白亜紀</div><div class="tlage">1.45億〜6,600万年前</div><div class="tlchip"><span style="font-size:16px">🦴</span><span class="tlfn">ティラノサウルス</span></div><div class="tldesc">恐竜が地球を支配した最後の時代。大型肉食恐竜と海生爬虫類が栄えた。</div></div></div>
+        <div style="display:flex;gap:10px;"><div style="display:flex;flex-direction:column;align-items:center;width:18px;flex-shrink:0;"><div class="tldot f"></div><div class="tlline"></div></div><div style="flex:1;display:flex;flex-direction:column;gap:5px;padding-bottom:4px;"><div class="tlera">デボン紀</div><div class="tlage">4.19億〜3.59億年前</div><div class="tlchip"><span style="font-size:16px">🐟</span><span class="tlfn">魚類化石</span></div><div class="tldesc">「魚の時代」。アンモナイトの祖先も登場し、海洋生命が爆発的に多様化。</div></div></div>
+        <div style="display:flex;gap:10px;"><div style="display:flex;flex-direction:column;align-items:center;width:18px;flex-shrink:0;"><div class="tldot"></div></div><div style="flex:1;display:flex;flex-direction:column;gap:5px;"><div class="tlera">カンブリア紀</div><div class="tlage">5.41億〜4.85億年前</div><div class="tlchip"><span style="font-size:16px">🦀</span><span class="tlfn">三葉虫</span></div><div class="tldesc">複雑な動物が突如出現した「カンブリア爆発」。</div></div></div>
+      </div>
+      <div style="padding:14px 18px;display:flex;flex-direction:column;gap:10px;">
+        <div class="ey">ARTICLES</div>
+        <div class="acard"><div class="ath2">🦴<div class="acat ac-b">COLLECTION GUIDE</div></div><div class="ainf"><div class="atit">はじめての化石選び——Sレア狙いか、年代コレクションか</div><div class="amet">2025.05.20 · 6 min read</div></div></div>
+        <div class="acard"><div class="ath2 cool">🌌<div class="acat ac-l">DEEP DIVE</div></div><div class="ainf"><div class="atit">6,600万年前の隕石衝突——化石が語る大絶滅の瞬間</div><div class="amet">2025.05.15 · 10 min read</div></div></div>
+        <div class="acard"><div class="ath2 nat">🐚<div class="acat ac-s">STORY</div></div><div class="ainf"><div class="atit">アンモナイトが4億年間生き続けた理由</div><div class="amet">2025.05.10 · 8 min read</div></div></div>
+      </div>
+    </div>
+    <div class="tbar">
+      <div class="tb-item act"><i class="ti ti-book"></i><span>記事</span></div>
+      <div class="tb-item" onclick="go('s-arrivals')"><i class="ti ti-bell"></i><span>新入荷</span></div>
+      <div class="tb-item" onclick="go('s-collection')"><i class="ti ti-layout-grid"></i><span>コレクション</span></div>
+      <div class="tb-item" onclick="go('s-community')"><i class="ti ti-messages"></i><span>コミュニティ</span></div>
+      <div class="tb-item" onclick="go('s-account')"><i class="ti ti-user"></i><span>アカウント</span></div>
+    </div>
+  </div>
+
+  <!-- ══ S9: アカウント ══ -->
+  <div class="screen" id="s-account">
+    <div class="sb"><span>9:41</span><span>◆◆ ▮▮</span></div>
+    <div class="hdr"><div class="ey">My Account</div><div class="h1t">アカウント</div></div>
+    <div class="mtabs">
+      <div class="mt on" onclick="switchAccTab('profile')">プロフィール</div>
+      <div class="mt" onclick="switchAccTab('history')">購入履歴</div>
+      <div class="mt" onclick="switchAccTab('rank')">ランク</div>
+    </div>
+    <div id="acc-profile" style="display:flex;flex-direction:column;flex:1;overflow:hidden;">
+      <div class="acc-hero">
+        <div class="av">🦴<div class="avrank">SILVER</div></div>
+        <div class="accname">Rose Tanaka</div>
+        <div class="accemail">rose@example.com</div>
+        <div class="accstats"><div class="pst"><div class="pstn">3</div><div class="pstl">COLLECTED</div></div><div class="pst"><div class="pstn">¥38K</div><div class="pstl">TOTAL</div></div><div class="pst"><div class="pstn">62%</div><div class="pstl">NEXT RANK</div></div></div>
+      </div>
+      <div class="scr-body" style="padding:0 18px;">
+        <div class="sglbl">ACCOUNT</div>
+        <div class="srow"><div class="sleft"><i class="ti ti-mail"></i><span class="stxt">メールアドレス</span></div><div class="sval">変更 <i class="ti ti-chevron-right"></i></div></div>
+        <div class="srow"><div class="sleft"><i class="ti ti-lock"></i><span class="stxt">パスワード</span></div><div class="sval">変更 <i class="ti ti-chevron-right"></i></div></div>
+        <div class="sglbl">NOTIFICATION</div>
+        <div class="srow"><div class="sleft"><i class="ti ti-bell"></i><span class="stxt">新入荷通知</span></div><div class="sval">ON <i class="ti ti-chevron-right"></i></div></div>
+        <div class="srow"><div class="sleft"><i class="ti ti-star"></i><span class="stxt">プレミアム会員</span></div><div class="sval">加入する <i class="ti ti-chevron-right"></i></div></div>
+        <div class="logout">ログアウト</div>
+      </div>
+    </div>
+    <div id="acc-history" style="display:none;flex-direction:column;flex:1;overflow:hidden;">
+      <div class="scr-body" style="padding:0 18px;">
+        <div class="sglbl">2025.05</div>
+        <div class="arow"><div class="ath">🐚<span class="rdot rs"></span></div><div class="ain"><div class="an">オルソセラス</div><div class="am">2025.05.28 · TOKYO</div></div><span style="font-family:'Anta',sans-serif;font-size:12px;color:#e0dbd2">¥12,000</span></div>
+        <div class="arow"><div class="ath">🦀<span class="rdot ra"></span></div><div class="ain"><div class="an">三葉虫</div><div class="am">2025.05.15 · TOKYO</div></div><span style="font-family:'Anta',sans-serif;font-size:12px;color:#e0dbd2">¥8,500</span></div>
+        <div class="sglbl">2025.03</div>
+        <div class="arow"><div class="ath">🦴<span class="rdot rs"></span></div><div class="ain"><div class="an">ティラノサウルス</div><div class="am">2025.03.08 · FUK</div></div><span style="font-family:'Anta',sans-serif;font-size:12px;color:#e0dbd2">¥18,000</span></div>
+      </div>
+      <div class="hist-total"><span class="htlbl">TOTAL SPENT</span><span class="htval">¥38,500</span></div>
+    </div>
+    <div id="acc-rank" style="display:none;flex-direction:column;flex:1;overflow:hidden;">
+      <div class="rank-hero">
+        <div class="rbadge">CURRENT RANK</div>
+        <div class="rcur">SILVER</div>
+        <div class="rsub">あと¥11,500でGOLDランクへ昇格</div>
+        <div class="rprog"><div class="rprow"><span class="rplbl ac">¥38,500</span><span class="rplbl">GOLD ¥50,000</span></div><div class="rbar"><div class="rfill"></div></div></div>
+      </div>
+      <div class="scr-body" style="padding:10px 18px;">
+        <div class="rrow"><div class="ricon">🪨</div><div class="rinfo"><div class="rname">BRONZE</div><div class="rcond">累計 ¥0〜</div><div class="rperks">新入荷通知 · コミュニティ参加</div></div><i class="ti ti-circle-check rck"></i></div>
+        <div class="rrow cur"><div class="ricon">🥈</div><div class="rinfo"><div class="rname">SILVER</div><div class="rcond">累計 ¥10,000〜</div><div class="rperks">優先入荷通知 · 限定クーポン</div></div><i class="ti ti-circle-check rck"></i></div>
+        <div class="rrow"><div class="ricon">🥇</div><div class="rinfo"><div class="rname">GOLD</div><div class="rcond">累計 ¥50,000〜</div><div class="rperks">先行販売 · 限定グッズ · 招待イベント</div></div><i class="ti ti-lock rlk"></i></div>
+        <div class="rrow"><div class="ricon">💎</div><div class="rinfo"><div class="rname">PLATINUM</div><div class="rcond">累計 ¥150,000〜</div><div class="rperks">専属サポート · 非公開オークション</div></div><i class="ti ti-lock rlk"></i></div>
+      </div>
+    </div>
+    <div class="tbar">
+      <div class="tb-item" onclick="go('s-articles')"><i class="ti ti-book"></i><span>記事</span></div>
+      <div class="tb-item" onclick="go('s-arrivals')"><i class="ti ti-bell"></i><span>新入荷</span></div>
+      <div class="tb-item" onclick="go('s-collection')"><i class="ti ti-layout-grid"></i><span>コレクション</span></div>
+      <div class="tb-item" onclick="go('s-community')"><i class="ti ti-messages"></i><span>コミュニティ</span></div>
+      <div class="tb-item act"><i class="ti ti-user"></i><span>アカウント</span></div>
+    </div>
+  </div>
+
+</div>
+
+<div class="nav-hint">タップして操作できます</div>
+
+<script>
+var current = 's-register';
+
+function go(id) {
+  if (id === current) return;
+  var prev = document.getElementById(current);
+  var next = document.getElementById(id);
+  if (!next) return;
+  prev.classList.add('exit-left');
+  setTimeout(function() { prev.classList.remove('active','exit-left'); }, 220);
+  next.classList.add('active');
+  current = id;
+  applyLight();
+}
+
+function applyLight() {
+  var isLight = document.getElementById('phone').classList.contains('light');
+  document.querySelectorAll('.screen').forEach(function(s) {
+    isLight ? s.classList.add('light') : s.classList.remove('light');
+  });
+  document.querySelectorAll('.concept-overlay,.concept-sheet,.arr-dialog-bg,.arr-sheet').forEach(function(el) {
+    isLight ? el.classList.add('light') : el.classList.remove('light');
+  });
+}
+
+function toggleMode() {
+  document.getElementById('modeToggle').classList.toggle('on');
+  document.getElementById('phone').classList.toggle('light');
+  applyLight();
+}
+
+function closeConceptDialog() {
+  document.getElementById('conceptOverlay').style.display = 'none';
+}
+
+var arrItems = {
+  ammonite: { emoji:'🐚', num:'#012 · S RARITY', name:'オルソセラス', latin:'Orthoceras sp.', tags:'<span class="dtag dt-e">オルドビス紀</span><span class="dtag dt-t">頭足類</span><span class="dtag dt-l">Morocco</span>', date:'2025.05.28', store:'TOKYO', age:'4.7億年前', cond:'★★★★★' },
+  trilobite: { emoji:'🦀', num:'#007 · A RARITY', name:'三葉虫', latin:'Elrathia kingii', tags:'<span class="dtag dt-e">カンブリア紀</span><span class="dtag dt-t">節足動物</span><span class="dtag dt-l">Utah, USA</span>', date:'2025.05.28', store:'TOKYO', age:'5.1億年前', cond:'★★★★☆' },
+  shark: { emoji:'🦷', num:'#021 · B RARITY', name:'メガロドン歯牙', latin:'Otodus megalodon', tags:'<span class="dtag dt-e">中新世</span><span class="dtag dt-t">軟骨魚類</span><span class="dtag dt-l">S. Carolina</span>', date:'2025.05.24', store:'FUK', age:'1,500万年前', cond:'★★★☆☆' },
+  amber: { emoji:'🟠', num:'#003 · S RARITY', name:'虫入り琥珀', latin:'Burmese amber sp.', tags:'<span class="dtag dt-e">白亜紀</span><span class="dtag dt-t">樹脂化石</span><span class="dtag dt-l">Myanmar</span>', date:'2025.05.24', store:'FUK', age:'9,900万年前', cond:'★★★★★' }
+};
+
+function openArrDialog(key) {
+  var d = arrItems[key];
+  document.getElementById('arr-emoji').textContent = d.emoji;
+  document.getElementById('arr-num').textContent = d.num;
+  document.getElementById('arr-name').textContent = d.name;
+  document.getElementById('arr-latin').textContent = d.latin;
+  document.getElementById('arr-tags').innerHTML = d.tags;
+  document.getElementById('arr-date').textContent = d.date;
+  document.getElementById('arr-store').textContent = d.store;
+  document.getElementById('arr-age').textContent = d.age;
+  document.getElementById('arr-cond').textContent = d.cond;
+  document.getElementById('arrDialog').classList.add('open');
+}
+function closeArrDialog() { document.getElementById('arrDialog').classList.remove('open'); }
+
+function switchAccTab(tab) {
+  ['profile','history','rank'].forEach(function(t) {
+    var el = document.getElementById('acc-' + t);
+    el.style.display = (t === tab) ? 'flex' : 'none';
+  });
+  document.querySelectorAll('#s-account .mtabs .mt').forEach(function(mt, i) {
+    mt.classList.toggle('on', ['profile','history','rank'][i] === tab);
+  });
+}
+</script>
+</body>
+</html>
